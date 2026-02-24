@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:sans-serif;text-align:center;background:#f2f2f2;padding:20px}
+video{width:100%;max-width:400px;border-radius:15px;background:black}
+input,button{padding:12px;margin:6px;width:100%;max-width:400px}
+</style>
+</head>
+
+<body>
+
+<h2>PRESENSI PRO</h2>
+
+<input id="nik" placeholder="Masukkan NIK">
+
+<video id="video" autoplay playsinline muted></video>
+
+<button onclick="absen('MASUK')">MASUK</button>
+<button onclick="absen('PULANG')">PULANG</button>
+
+<script>
+
+const API =
+"PASTE_LINK_APPS_SCRIPT_KAMU_DISINI";
+
+let video=document.getElementById("video");
+
+async function startCamera(){
+ const stream=await navigator.mediaDevices.getUserMedia({
+   video:{facingMode:"user"},audio:false
+ });
+ video.srcObject=stream;
+}
+
+startCamera();
+
+function absen(status){
+
+ const nik=document.getElementById("nik").value;
+ if(!nik) return alert("Isi NIK!");
+
+ navigator.geolocation.getCurrentPosition(pos=>{
+
+   const canvas=document.createElement("canvas");
+   canvas.width=video.videoWidth;
+   canvas.height=video.videoHeight;
+
+   canvas.getContext("2d").drawImage(video,0,0);
+
+   fetch(API,{
+     method:"POST",
+     body:JSON.stringify({
+       nik:nik,
+       status:status,
+       lat:pos.coords.latitude,
+       lng:pos.coords.longitude,
+       foto:canvas.toDataURL("image/jpeg",0.6)
+     })
+   })
+   .then(r=>r.json())
+   .then(d=>alert(d.status));
+
+ });
+
+}
+
+</script>
+
+</body>
+</html>
