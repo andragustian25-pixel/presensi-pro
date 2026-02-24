@@ -3,67 +3,129 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{font-family:sans-serif;text-align:center;background:#f2f2f2;padding:20px}
-video{width:100%;max-width:400px;border-radius:15px;background:black}
-input,button{padding:12px;margin:6px;width:100%;max-width:400px}
+body{
+font-family:Segoe UI;
+background:#f0f2f5;
+display:flex;
+justify-content:center;
+padding:15px;
+}
+.card{
+background:white;
+padding:20px;
+border-radius:20px;
+box-shadow:0 10px 30px rgba(0,0,0,.1);
+max-width:400px;
+width:100%;
+text-align:center;
+}
+input{
+width:100%;
+padding:15px;
+font-size:18px;
+margin-bottom:10px;
+border-radius:12px;
+border:2px solid #ddd;
+text-align:center;
+font-weight:bold;
+}
+video{
+width:100%;
+border-radius:15px;
+background:black;
+transform:scaleX(-1);
+}
+.btn{
+width:48%;
+padding:14px;
+margin:4px;
+border:none;
+border-radius:10px;
+color:white;
+font-weight:bold;
+}
+.masuk{background:#28a745}
+.pulang{background:#dc3545}
+.l1{background:#ffc107;color:#333}
+.l2{background:#6f42c1}
+#info{display:none;margin-top:10px}
 </style>
 </head>
 
 <body>
 
+<div class="card">
 <h2>PRESENSI PRO</h2>
 
-<input id="nik" placeholder="Masukkan NIK">
+<input id="nik" placeholder="MASUKKAN NIK" oninput="ambilData()">
 
-<video id="video" autoplay playsinline muted></video>
+<video id="cam" autoplay playsinline></video>
+<canvas id="canvas" style="display:none"></canvas>
 
-<button onclick="absen('MASUK')">MASUK</button>
-<button onclick="absen('PULANG')">PULANG</button>
+<div>
+<button class="btn masuk" onclick="kirim('MASUK')">MASUK</button>
+<button class="btn pulang" onclick="kirim('PULANG')">PULANG</button>
+</div>
+
+<div>
+<button class="btn l1" onclick="kirim('LEMBUR MULAI')">L-MULAI</button>
+<button class="btn l2" onclick="kirim('LEMBUR SELESAI')">L-SELESAI</button>
+</div>
+
+<div id="info">
+<h3 id="nama">-</h3>
+<p id="jabatan">-</p>
+</div>
+
+</div>
 
 <script>
 
-const API =
-"PASTE_LINK_APPS_SCRIPT_KAMU_DISINI";
+const API="https://script.google.com/macros/s/AKfycbyHjOAVm0lVh9t7S1eUba4krQICexb9-itB2yO4SwEgRUV6KDCNQM-I8wd4j4FV-wQr/exec";
 
-let video=document.getElementById("video");
+const video=document.getElementById("cam");
 
-async function startCamera(){
- const stream=await navigator.mediaDevices.getUserMedia({
-   video:{facingMode:"user"},audio:false
- });
- video.srcObject=stream;
+navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}})
+.then(s=>video.srcObject=s);
+
+async function ambilData(){
+let nik=document.getElementById("nik").value;
+if(nik.length<3)return;
+
+let res=await fetch(API+"?action=get&nik="+nik);
+let data=await res.json();
+
+document.getElementById("info").style.display="block";
+document.getElementById("nama").innerText=data.nama;
+document.getElementById("jabatan").innerText=data.jabatan;
 }
 
-startCamera();
+function kirim(status){
 
-function absen(status){
+let nik=document.getElementById("nik").value;
+if(!nik) return alert("Isi NIK dulu");
 
- const nik=document.getElementById("nik").value;
- if(!nik) return alert("Isi NIK!");
+navigator.geolocation.getCurrentPosition(pos=>{
 
- navigator.geolocation.getCurrentPosition(pos=>{
+const canvas=document.getElementById("canvas");
+canvas.width=video.videoWidth;
+canvas.height=video.videoHeight;
+canvas.getContext("2d").drawImage(video,0,0);
 
-   const canvas=document.createElement("canvas");
-   canvas.width=video.videoWidth;
-   canvas.height=video.videoHeight;
+fetch(API,{
+method:"POST",
+body:JSON.stringify({
+nik:nik,
+status:status,
+lat:pos.coords.latitude,
+lng:pos.coords.longitude,
+foto:canvas.toDataURL("image/jpeg",0.6)
+})
+})
+.then(r=>r.text())
+.then(t=>alert(t));
 
-   canvas.getContext("2d").drawImage(video,0,0);
-
-   fetch(API,{
-     method:"POST",
-     body:JSON.stringify({
-       nik:nik,
-       status:status,
-       lat:pos.coords.latitude,
-       lng:pos.coords.longitude,
-       foto:canvas.toDataURL("image/jpeg",0.6)
-     })
-   })
-   .then(r=>r.json())
-   .then(d=>alert(d.status));
-
- });
-
+},{enableHighAccuracy:true});
 }
 
 </script>
